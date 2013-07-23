@@ -39,8 +39,6 @@ new()->
 	AllCardMap=cards2map(AllCards),
 	#fightlandlord3{ranks=AllRanks,suits=AllSuits,cards=AllCards,allcardstr=AllCardStr,allcardmap=AllCardMap}.
 
-groupBy(F, L) -> lists:foldr(fun({K,V}, D) -> dict:append(K, V, D) end , dict:new(), [ {F(X), X} || X <- L ]).
-
 byName(#joker{token=Token})->Token;
 byName(#card{rank={_,Name,_}})->Name.
 
@@ -53,7 +51,7 @@ is_joker(#card{})->false.
 compare(C1,C2)->get_value(C1)>get_value(C2).
 
 pattern(Cards)->
-	CardsByName=groupBy(fun byName/1,Cards),
+	CardsByName=utils:groupBy(fun byName/1,Cards),
 	CardsInGroup=lists:sort(fun(L1,L2)->length(L1)>length(L2) end,lists:map(fun({_,List})->List end,dict:to_list(CardsByName))),
 	pattern2(CardsInGroup).
 
