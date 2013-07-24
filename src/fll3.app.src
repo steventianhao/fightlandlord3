@@ -1,0 +1,12 @@
+{application, fll3,
+ [
+  {description, ""},
+  {vsn, "1"},
+  {registered, []},
+  {applications, [
+                  kernel,
+                  stdlib
+                 ]},
+  {mod, { fll3_app, []}},
+  {env, []}
+ ]}.
