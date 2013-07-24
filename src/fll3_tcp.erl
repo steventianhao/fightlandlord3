@@ -13,7 +13,8 @@ init(Ref,Socket,Transport,_Opts=[])->
 	ok=proc_lib:init_ack({ok,self()}),
 	ok=ranch:accept_ack(Ref),
 	ok=Transport:setopts(Socket,[{active,once}]),
-	gen_server:enter_loop(?MODULE,[],{Socket,Transport}).
+	{ok,Timeout}=application:get_env(fll3,timeout),
+	gen_server:enter_loop(?MODULE,[],{Socket,Transport},Timeout).
 
 init(_Args)-> ignore.
 
@@ -29,13 +30,17 @@ handle_cast(_Request,State)->
 handle_info(Info,State)->
 	{Socket,Transport}=State,
 	Transport:setopts(Socket,[{active,once}]),
-	handle(Info),
+	handle(Info,State),
 	{noreply,State}.
 
-handle({tcp,Socket,Packet})->
+handle({tcp,Socket,Packet},_State)->
 	io:format("get data from socket@~p, data@~p~n",[Socket,Packet]);
-handle({tcp_closed,Socket})->
-	io:format("tcp closed from client@~p~n",[Socket]).
+handle({tcp_closed,Socket},_State)->
+	io:format("tcp closed from client@~p~n",[Socket]);
+handle(timeout,_State)->
+	io:format("timeout,should close the socket~n");
+handle(Info,_State)->
+	io:format("something not handled@~p~n",[Info]).
 
 terminate(_Reason,_State)->
 	ok.
