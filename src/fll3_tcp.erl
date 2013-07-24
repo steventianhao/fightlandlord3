@@ -27,10 +27,15 @@ handle_cast(_Request,State)->
 	{noreply,State}.
 
 handle_info(Info,State)->
-	io:format("handle (info#~p),(state#~p)~n",[Info,State]),
 	{Socket,Transport}=State,
 	Transport:setopts(Socket,[{active,once}]),
+	handle(Info),
 	{noreply,State}.
+
+handle({tcp,Socket,Packet})->
+	io:format("get data from socket@~p, data@~p~n",[Socket,Packet]);
+handle({tcp_closed,Socket})->
+	io:format("tcp closed from client@~p~n",[Socket]).
 
 terminate(_Reason,_State)->
 	ok.
