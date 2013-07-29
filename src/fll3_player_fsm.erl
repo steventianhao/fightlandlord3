@@ -4,6 +4,8 @@
 -export([code_change/4,handle_event/3,handle_info/3,handle_sync_event/4,init/1,terminate/3]).
 
 -record(state,{user,table,lobby}).
+-define(PLAYER_ON_TABLE(Table),{p,l,{player_on_table,Table}}).
+-define(TABLE(Table),{n,l,{table,Table}}).
 
 
 init([User,Lobby])->
@@ -35,20 +37,27 @@ hangout({enter_table,Table},StateData)->
 	Lobby=StateData#state.lobby,
 	IsValid=fll3_lobby:check_table_id(Lobby,Table),
 	case IsValid of
-		false->{stop,baddata,StateData};
+		false->{stop,badarg,StateData};
 		true->
-			gproc:reg({p,l,{player_on_table,Table}}),
-			NewStateData=StateData#state{table=Table},
-			%%ask the table to send current status to player.
-			gproc:send({p,l,{table,Table}},{current_status,self()}),
-			{next_state,wait,NewStateData}
+			Ptable=gproc:where(?TABLE(Table)),
+			Result=gen_server:call(Ptable,{enter_table,self()}).
+			case Result of
+				accepted->
+					gproc:reg(?PLAYER_ON_TABLE(Table)),
+					NewStateData=StateData#state{table=Table},
+					{next_state,wait,NewStateData};
+				rejected->{next_state,hangout,StateData}
+			end
 	end.
 
 wait(exit_table,StateData)->
 	Table=StateData#state.table,
-	gproc:unreg({p,l,{player_on_table,Table}}),
 	NewStateData=StateData#state{table=undefined},
+	gproc:unreg(?PLAYER_ON_TABLE(Table)),
+	Ptable=gproc:where(?TABLE(Table)),
+	gen_server:cast(Ptable,{exit_table,self()}),
 	{next_state,hangout,NewStateData};
+
 wait(get_ready,StateData)->
 	Table=StateData#state.table,
 	gproc:send({p,l,{table,Table}},{get_ready,self()}),
@@ -57,11 +66,8 @@ wait(get_ready,StateData)->
 %%from player
 ready(exit_table,StateData)->
 	Table=StateData#state.table,
-	gproc:unreg({p,l,{player_on_table,Table}}),
+	gproc:unreg(?PLAYER_ON_TABLE(Table)),
 	NewStateData=StateData#state{table=undefined},
 	{next_state,hangout,NewStateData};
 
-%%from table, when all player get ready, then start the game
-
-start({bet,Bet},StateData)->
-	
+%%from table, when all player get ready, then start the game	
