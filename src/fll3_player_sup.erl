@@ -11,7 +11,7 @@ init(Lobby)->
 	{ok,{Strategy,[Child]}}.
 
 start_player_mgr(Lobby) ->
-    supervisor:start_link(?MODULE, Lobby).
+    supervisor:start_link({local,player_manager},?MODULE, Lobby).
 
-start_player(Supervisor,Conn)->
-	supervisor:start_child(Supervisor,[Conn]).
+start_player(Conn)->
+	supervisor:start_child(player_manager,[Conn]).
