@@ -2,9 +2,9 @@
 -behavior(gen_fsm).
 
 -export([code_change/4,handle_event/3,handle_info/3,handle_sync_event/4,init/1,terminate/3]).
--export([anonymous/2,user/2]).
+-export([anonymous/2,user/2,start_link/2]).
 
--record(state,{conn,user,tables,lobby}).
+-record(state,{conn,user,tables=[],lobby}).
 -define(PLAYER_ON_TABLE(Table),{p,l,{player_on_table,Table}}).
 -define(TABLE(Table),{n,l,{table,Table}}).
 

@@ -11,5 +11,5 @@ start(App)->
 	case V of
 		ok->ok;
 		{error,{already_started,_}}->ok;
-		{error,_}->error(no_such_app)
+		{error,Reason}->error({no_such_app,Reason})
 	end.
