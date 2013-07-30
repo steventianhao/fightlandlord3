@@ -2,72 +2,85 @@
 -behavior(gen_fsm).
 
 -export([code_change/4,handle_event/3,handle_info/3,handle_sync_event/4,init/1,terminate/3]).
+-export([anonymous/2,user/2]).
 
--record(state,{user,table,lobby}).
+-record(state,{conn,user,tables,lobby}).
 -define(PLAYER_ON_TABLE(Table),{p,l,{player_on_table,Table}}).
 -define(TABLE(Table),{n,l,{table,Table}}).
 
+start_link(Conn,Lobby)->
+	gen_fsm:start_link(?MODULE,{Conn,Lobby},[]).
 
-init([User,Lobby])->
-	{ok,hangout,#state{user=User,lobby=Lobby}.
+init({Conn,Lobby})->
+	{ok,anonymous,#state{conn=Conn,lobby=Lobby}}.
 
-code_change(_OldVsn,StateName,StateData,Extra)->
+code_change(_OldVsn,StateName,StateData,_Extra)->
 	{ok,StateName,StateData}.
 
 %%handle all the event for all states,
-handle_event(Event,StateName,StateData)->
+handle_event(_Event,StateName,StateData)->
 	{next_state,StateName,StateData}.
 
 handle_sync_event(_Event,_From,StateName,StateData)->
 	{reply,ok,StateName,StateData}.
 
-%% send by table via gproc:send({p,l,{player_on_table,TableId}},start_game)
-handle_info(start_game,ready,StateData)->
-	{next_state,ready,StateData};
-handle_info(Info,StateName,StateData)->
+handle_info(_Info,StateName,StateData)->
 	{next_state,StateName,StateData}.
 
-terminate(Reason,StateName,StateData)->
+terminate(_Reason,_StateName,_StateData)->
 	ok.
 
-%% STM  hangout----(enter_table)--> wait----(exit_table)-->hangout
-%% wait-----(get_ready)--> ready --
-
-hangout({enter_table,Table},StateData)->
-	Lobby=StateData#state.lobby,
-	IsValid=fll3_lobby:check_table_id(Lobby,Table),
-	case IsValid of
-		false->{stop,badarg,StateData};
-		true->
-			Ptable=gproc:where(?TABLE(Table)),
-			Result=gen_server:call(Ptable,{enter_table,self()}).
-			case Result of
-				accepted->
-					gproc:reg(?PLAYER_ON_TABLE(Table)),
-					NewStateData=StateData#state{table=Table},
-					{next_state,wait,NewStateData};
-				rejected->{next_state,hangout,StateData}
-			end
+anonymous({login,Token},StateData)->
+	io:format("login, token is ~p,state is ~p~n",[Token,StateData]),
+	case Token of
+		"simon"->
+			{next_state,user,StateData};
+		_ ->
+			{next_state,anonymous,StateData}
 	end.
 
-wait(exit_table,StateData)->
-	Table=StateData#state.table,
-	NewStateData=StateData#state{table=undefined},
-	gproc:unreg(?PLAYER_ON_TABLE(Table)),
-	Ptable=gproc:where(?TABLE(Table)),
-	gen_server:cast(Ptable,{exit_table,self()}),
-	{next_state,hangout,NewStateData};
+validate_table(Tables,Table)->lists:any(fun(T)->T==Table end,Tables).
 
-wait(get_ready,StateData)->
-	Table=StateData#state.table,
-	gproc:send({p,l,{table,Table}},{get_ready,self()}),
-	{next_state,ready,StateData}.
+user({enter_table,Table},StateData)->
+	#state{lobby=Lobby,tables=Tables}=StateData,
+	case validate_table(Tables,Table) of
+		false ->
+			case fll3_lobby:check_table_id(Lobby,Table) of
+				false->{stop,badarg,StateData};
+				true->
+					Ptable=gproc:where(?TABLE(Table)),
+					case gen_server:call(Ptable,{enter_table,self()}) of
+						accept->
+							gproc:reg(?PLAYER_ON_TABLE(Table)),
+							NewStateData=StateData#state{tables=[Table|StateData#state.tables]},
+							{next_state,user,NewStateData};
+						reject->
+							{next_state,user,StateData}
+					end
+			end;
+		true ->
+			{next_state,user,StateData}
+	end;
 
-%%from player
-ready(exit_table,StateData)->
-	Table=StateData#state.table,
-	gproc:unreg(?PLAYER_ON_TABLE(Table)),
-	NewStateData=StateData#state{table=undefined},
-	{next_state,hangout,NewStateData};
+user({exit_table,Table},StateData)->
+	Tables=StateData#state.tables,
+	case validate_table(Tables,Table) of
+		true->
+			NewTables=lists:filter(fun(T)->T /= Table end,Tables),
+			NewStateData=StateData#state{tables=NewTables},
+			gproc:unreg(?PLAYER_ON_TABLE(Table)),
+			gproc:send(?TABLE(Table),{exit_table,Table,self()}),
+			{next_state,user,NewStateData};
+		fase->
+			{stop,badarg,StateData}
+	end;
 
-%%from table, when all player get ready, then start the game	
+user({get_ready,Table},StateData)->
+	Tables=StateData#state.tables,
+	case lists:any(fun(T)->T==Table end,Tables) of
+		true -> 
+			gproc:send(?TABLE(Table),{get_ready,Table,self()}),
+			{next_state,user,StateData};
+		false -> 
+			{stop,badarg,StateData}
+	end.

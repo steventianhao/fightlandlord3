@@ -12,7 +12,8 @@ start_link(Ref,Socket,Transport,Opts)->
 init(Ref,Socket,Transport,_Opts=[])->
 	ok=proc_lib:init_ack({ok,self()}),
 	ok=ranch:accept_ack(Ref),
-	ok=Transport:setopts(Socket,[{active,once}]),
+	ok=Transport:setopts(Socket,[{active,once},{packet,line},{recbuf,512}]),
+	%% fll3_super:start_child
 	{ok,Timeout}=application:get_env(fll3,timeout),
 	gen_server:enter_loop(?MODULE,[],{Socket,Transport},Timeout).
 
