@@ -75,12 +75,7 @@ pattern2([[C1,_,_]])->{triple,C1};
 pattern2([[C1,_,_],[_]])->{triple_plus_single,C1};
 pattern2([[C1,_,_],[#card{},#card{}]])->{triple_plus_pair,C1};
 pattern2(Cards=[[_,_,_],[_,_,_]|_])->
-	N3=lists:filtermap(fun(L)->
-		case length(L) of 
-			3->{true,lists:nth(1,L)};
-			_-> false 
-		end 
-	end,Cards),
+	N3=lists:map(fun(L)->lists:nth(1,L) end,lists:filter(fun(L)-> length(L)==3 end,Cards)),
 	SN3=lists:sort(fun compare/2,N3),
 	L3=length(N3),
 	Top=#card{rank={_,_,V1}}=lists:nth(1,SN3),
