@@ -5,16 +5,16 @@
 -record(table,{id,status="open",users=[]}).
 
 -export([init/1,terminate/2,handle_info/2,handle_call/3,handle_cast/2,code_change/3]).
--export([start_link/1,show_lobby/1,check_table_id/2]).
+-export([start_link/0,show_lobby/0,check_table_id/1]).
 
-start_link(Name)->
-	gen_server:start_link({local,Name},?MODULE,Name,[]).
+start_link()->
+	gen_server:start_link({local,lobby},?MODULE,[],[]).
 
-show_lobby(Name)->
-	gen_server:call(Name,show_lobby).
+show_lobby()->
+	gen_server:call(lobby,show_lobby).
 
-check_table_id(Name,TableId)->
-	gen_server:call(Name,{check_table_id,TableId}).
+check_table_id(TableId)->
+	gen_server:call(lobby,{check_table_id,TableId}).
 
 handle_call(show_lobby,_From,State)->
 	Reply=State#state.tables,

@@ -3,19 +3,21 @@
 -behavior(gen_server).
 
 -export([start_link/4]).
--export([init/4]).
+-export([init/6]).
 -export([code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2]).
 
 start_link(Ref,Socket,Transport,Opts)->
-	proc_lib:start_link(?MODULE,init,[Ref,Socket,Transport,Opts]).
-
-init(Ref,Socket,Transport,_Opts=[])->
+	ConnRef=make_ref(),
+	{ok,Pid}=fll3_player_sup:start_player(ConnRef),
+	proc_lib:start_link(?MODULE,init,[Ref,Socket,Transport,Pid,ConnRef,Opts]).
+	
+init(Ref,Socket,Transport,Player,ConnRef,_Opts=[])->
 	ok=proc_lib:init_ack({ok,self()}),
 	ok=ranch:accept_ack(Ref),
 	ok=Transport:setopts(Socket,[{active,once},{packet,line},{recbuf,512},{packet_size,512}]),
-	%% fll3_super:start_child
 	{ok,Timeout}=application:get_env(fll3,timeout),
-	gen_server:enter_loop(?MODULE,[],{Socket,Transport},Timeout).
+	gproc:reg({n,l,{conn,ConnRef}}),
+	gen_server:enter_loop(?MODULE,[],{Socket,Transport,Player},Timeout).
 
 init(_Args)-> ignore.
 
@@ -29,7 +31,7 @@ handle_cast(_Request,State)->
 	{noreply,State}.
 
 handle_info(Info,State)->
-	{Socket,Transport}=State,
+	{Socket,Transport,Player}=State,
 	Transport:setopts(Socket,[{active,once}]),
 	handle(Info,State),
 	{noreply,State}.

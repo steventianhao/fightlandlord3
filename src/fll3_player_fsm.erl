@@ -2,17 +2,17 @@
 -behavior(gen_fsm).
 
 -export([code_change/4,handle_event/3,handle_info/3,handle_sync_event/4,init/1,terminate/3]).
--export([anonymous/2,user/2,start_link/2]).
+-export([anonymous/2,user/2,start_link/1]).
 
--record(state,{conn,user,tables=[],lobby}).
+-record(state,{conn,user,tables=[]}).
 -define(PLAYER_ON_TABLE(Table),{p,l,{player_on_table,Table}}).
 -define(TABLE(Table),{n,l,{table,Table}}).
 
-start_link(Conn,Lobby)->
-	gen_fsm:start_link(?MODULE,{Conn,Lobby},[]).
+start_link(Conn)->
+	gen_fsm:start_link(?MODULE,Conn,[]).
 
-init({Conn,Lobby})->
-	{ok,anonymous,#state{conn=Conn,lobby=Lobby}}.
+init(Conn)->
+	{ok,anonymous,#state{conn=Conn}}.
 
 code_change(_OldVsn,StateName,StateData,_Extra)->
 	{ok,StateName,StateData}.
@@ -42,10 +42,10 @@ anonymous({login,Token},StateData)->
 validate_table(Tables,Table)->lists:any(fun(T)->T==Table end,Tables).
 
 user({enter_table,Table},StateData)->
-	#state{lobby=Lobby,tables=Tables}=StateData,
+	#state{tables=Tables}=StateData,
 	case validate_table(Tables,Table) of
 		false ->
-			case fll3_lobby:check_table_id(Lobby,Table) of
+			case fll3_lobby:check_table_id(Table) of
 				false->{stop,badarg,StateData};
 				true->
 					Ptable=gproc:where(?TABLE(Table)),
