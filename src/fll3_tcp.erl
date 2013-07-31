@@ -2,6 +2,7 @@
 -behavior(ranch_protocol).
 -behavior(gen_server).
 
+-compile([{parse_transform, lager_transform}]).
 -export([start_link/4]).
 -export([init/6]).
 -export([code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2]).
@@ -31,13 +32,20 @@ handle_cast(_Request,State)->
 	{noreply,State}.
 
 handle_info(Info,State)->
-	{Socket,Transport,Player}=State,
+	{Socket,Transport,_Player}=State,
 	Transport:setopts(Socket,[{active,once}]),
 	handle(Info,State),
 	{noreply,State}.
 
-handle({tcp,Socket,Packet},_State)->
-	io:format("get data from socket@~p, data@~p~n",[Socket,Packet]);
+handle({tcp,Socket,Packet},State)->
+	lager:info("get data from socket@~p, data@~p",[Socket,Packet]),
+	{Socket,Transport,Player}=State,
+	Action=fll3_json_action:handle(Packet),
+	lager:info("Action got:~p",[Action]),
+	case Action of
+		badjson->Transport:close(Socket);
+		_->gen_fsm:send_event(Player,Action)
+	end;
 handle({tcp_closed,Socket},_State)->
 	io:format("tcp closed from client@~p~n",[Socket]);
 handle(timeout,_State)->
