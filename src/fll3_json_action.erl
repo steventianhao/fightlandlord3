@@ -17,4 +17,8 @@ process(Json)->
 	badjson.
 
 handle(Binary)->
-	process(jiffy:decode(Binary)).
+	try jiffy:decode(Binary) of
+		Json-> process(Json)
+	catch
+		_->badjson
+	end.
