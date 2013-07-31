@@ -2,9 +2,11 @@
 -export([start/0,start/1]).
 
 start()->
+	start(lager),
 	start(gproc),
 	start(ranch),
 	start(fll3).
+	
 
 start(App)->
 	V=application:start(App),

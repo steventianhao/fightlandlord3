@@ -1,10 +1,12 @@
 -module(fll3_player_fsm).
 -behavior(gen_fsm).
 
+-compile([{parse_transform, lager_transform}]).
 -export([code_change/4,handle_event/3,handle_info/3,handle_sync_event/4,init/1,terminate/3]).
 -export([anonymous/2,user/2,start_link/1]).
 
 -record(state,{conn,user,tables=[]}).
+
 -define(PLAYER_ON_TABLE(Table),{p,l,{player_on_table,Table}}).
 -define(TABLE(Table),{n,l,{table,Table}}).
 
@@ -31,13 +33,15 @@ terminate(_Reason,_StateName,_StateData)->
 	ok.
 
 anonymous({login,Token},StateData)->
-	io:format("login, token is ~p,state is ~p~n",[Token,StateData]),
+	lager:info("login, token is ~p,state is ~p",[Token,StateData]),
 	case Token of
 		"simon"->
 			{next_state,user,StateData};
 		_ ->
 			{next_state,anonymous,StateData}
-	end.
+	end;
+anonymous(Info,_StateData)->
+	lager:info("anonymous message unhandled ~p",[Info]).
 
 validate_table(Tables,Table)->lists:any(fun(T)->T==Table end,Tables).
 
