@@ -36,7 +36,11 @@ anonymous({login,Token},StateData)->
 	lager:info("login, token is ~p,state is ~p",[Token,StateData]),
 	case Token of
 		"simon"->
-			{next_state,user,StateData};
+			NewStateData#state{user="simon"},
+			{next_state,user,NewStateData};
+		"sammi"->
+			NewStateData#state{user="sammi"},
+			{next_state,user,NewStateData};
 		_ ->
 			{next_state,anonymous,StateData}
 	end;
