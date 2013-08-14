@@ -8,5 +8,5 @@
                   stdlib
                  ]},
   {mod, { fll3_app, []}},
-  {env, [{timeout,3000}]}
+  {env, [{timeout,10000}]}
  ]}.

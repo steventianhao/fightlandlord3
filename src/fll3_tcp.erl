@@ -34,24 +34,42 @@ handle_cast(_Request,State)->
 handle_info(Info,State)->
 	{Socket,Transport,_Player}=State,
 	Transport:setopts(Socket,[{active,once}]),
-	handle(Info,State),
-	{noreply,State}.
+	handle(Info,State).
+	
+notify_conn_closed(Player)->
+	gen_fsm:send_all_state_event(Player,conn_closed).
 
 handle({tcp,Socket,Packet},State)->
-	lager:info("get data from socket@~p, data@~p",[Socket,Packet]),
-	{Socket,Transport,Player}=State,
+	lager:info("get data from connection@~p, data@~p",[Socket,Packet]),
+	{_,_,Player}=State,
 	Action=fll3_json_action:handle(Packet),
 	lager:info("Action got:~p",[Action]),
 	case Action of
-		badjson->Transport:close(Socket);
-		_->gen_fsm:send_event(Player,Action)
+		badjson-> 
+			notify_conn_closed(Player),
+			lager:info("get message is invalid jsoin ~p",[Packet]),
+			{stop,badjson,State};
+		_-> 
+			gen_fsm:send_event(Player,Action),
+			{noreply,State}
 	end;
-handle({tcp_closed,Socket},_State)->
-	io:format("tcp closed from client@~p~n",[Socket]);
-handle(timeout,_State)->
-	io:format("timeout,should close the socket~n");
-handle(Info,_State)->
-	io:format("something not handled@~p~n",[Info]).
+handle({tcp_closed,Socket},State)->
+	{_,_,Player}=State,
+	notify_conn_closed(Player),
+	lager:info("connection closed @~p",[Socket]),
+	{stop,conn_closed,State};
+
+handle({tcp_error,Socket,Reason},State)->
+	lager:info("connection error @~p~n",[Socket]),
+	{stop,{conn_error,Reason},State};
+
+handle(timeout,State)->
+	lager:info("connection timeout,should close the socket~n"),
+	{stop,conn_timeout,State};
+
+handle(Info,State)->
+	lager:info("something not handled@~p",[Info]),
+	{noreply,State}.
 
 terminate(_Reason,_State)->
 	ok.

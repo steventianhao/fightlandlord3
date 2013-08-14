@@ -20,6 +20,9 @@ code_change(_OldVsn,StateName,StateData,_Extra)->
 	{ok,StateName,StateData}.
 
 %%handle all the event for all states,
+handle_event(conn_closed,StateName,StateData)->
+	lager:info("connection closed,what should I do# ~p@~p",[StateName,StateData]),
+	{next_state,StateName,StateData};
 handle_event(_Event,StateName,StateData)->
 	{next_state,StateName,StateData}.
 
@@ -36,10 +39,10 @@ anonymous({login,Token},StateData)->
 	lager:info("login, token is ~p,state is ~p",[Token,StateData]),
 	case Token of
 		"simon"->
-			NewStateData#state{user="simon"},
+			NewStateData=StateData#state{user="simon"},
 			{next_state,user,NewStateData};
 		"sammi"->
-			NewStateData#state{user="sammi"},
+			NewStateData=StateData#state{user="sammi"},
 			{next_state,user,NewStateData};
 		_ ->
 			{next_state,anonymous,StateData}
