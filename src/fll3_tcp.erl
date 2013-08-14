@@ -31,6 +31,10 @@ handle_call(_Request,_From,State)->
 handle_cast(_Request,State)->
 	{noreply,State}.
 
+handle_info({output,Reply},State)->
+	{Socket,Transport,_Player}=State,
+	Transport:send(Socket,Reply),
+	{noreply,State};
 handle_info(Info,State)->
 	{Socket,Transport,_Player}=State,
 	Transport:setopts(Socket,[{active,once}]),

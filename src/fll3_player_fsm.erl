@@ -38,17 +38,20 @@ terminate(_Reason,_StateName,_StateData)->
 anonymous({login,Token},StateData)->
 	lager:info("login, token is ~p,state is ~p",[Token,StateData]),
 	case Token of
-		"simon"->
+		<<"simon">>->
+			lager:info("I am simon"),
 			NewStateData=StateData#state{user="simon"},
 			{next_state,user,NewStateData};
-		"sammi"->
+		<<"sammi">>->
+			lager:info("I am sammi"),
 			NewStateData=StateData#state{user="sammi"},
 			{next_state,user,NewStateData};
 		_ ->
+			lager:info("I am nothing"),
 			{next_state,anonymous,StateData}
 	end;
 anonymous(Info,_StateData)->
-	lager:info("anonymous message unhandled ~p",[Info]).
+	lager:info("in anonymous state,message unhandled ~p",[Info]).
 
 validate_table(Tables,Table)->lists:any(fun(T)->T==Table end,Tables).
 
@@ -72,6 +75,12 @@ user({enter_table,Table},StateData)->
 		true ->
 			{next_state,user,StateData}
 	end;
+user(show_lobby,StateData)->
+	lager:info("showlobby message got, state is ~p",[StateData]),
+	Reply=fll3_lobby:show_lobby(),
+	ConnRef=StateData#state.conn,
+	gproc:send({n,l,{conn,ConnRef}},{output,Reply}),
+	{next_state,user,StateData};
 
 user({exit_table,Table},StateData)->
 	Tables=StateData#state.tables,

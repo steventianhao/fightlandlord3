@@ -6,6 +6,8 @@ process({[{<<"kind">>,<<"login">>},{<<"token">>,Token}]})->
 	{login,Token};
 process({[{<<"kind">>,<<"talk">>},{<<"table">>,Table},{<<"content">>,Content}]}) when is_integer(Table)->
 	{talk,Table,Content};
+process({[{<<"kind">>,<<"showlobby">>}]})->
+	show_lobby;
 process({[{<<"kind">>,<<"enter_table">>},{<<"table">>,Table}]}) when is_integer(Table) ->
 	{enter_table,Table};
 process({[{<<"kind">>,<<"exit_table">>},{<<"table">>,Table}]}) when is_integer(Table)->
