@@ -33,7 +33,7 @@ handle_cast(_Request,State)->
 
 handle_info({output,Reply},State)->
 	{Socket,Transport,_Player}=State,
-	Transport:send(Socket,Reply),
+	Transport:send(Socket,[jiffy:encode(Reply),"\r\n"]),
 	{noreply,State};
 handle_info(Info,State)->
 	{Socket,Transport,_Player}=State,

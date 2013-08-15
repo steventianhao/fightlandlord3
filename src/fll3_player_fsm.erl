@@ -76,10 +76,11 @@ user({enter_table,Table},StateData)->
 			{next_state,user,StateData}
 	end;
 user(show_lobby,StateData)->
-	lager:info("showlobby message got, state is ~p",[StateData]),
 	Reply=fll3_lobby:show_lobby(),
+	lager:info("showlobby message got, state is ~p,reply is ~p",[StateData,Reply]),
 	ConnRef=StateData#state.conn,
-	gproc:send({n,l,{conn,ConnRef}},{output,Reply}),
+	Json=fll3_lobby:tables_to_json(Reply),
+	gproc:send({n,l,{conn,ConnRef}},{output,Json}),
 	{next_state,user,StateData};
 
 user({exit_table,Table},StateData)->

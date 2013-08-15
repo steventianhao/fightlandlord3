@@ -6,12 +6,18 @@
 
 -export([init/1,terminate/2,handle_info/2,handle_call/3,handle_cast/2,code_change/3]).
 -export([start_link/0,show_lobby/0,check_table_id/1]).
+-export([table_to_json/1,tables_to_json/1]).
 
 start_link()->
 	gen_server:start_link({local,lobby},?MODULE,[],[]).
 
 show_lobby()->
 	gen_server:call(lobby,show_lobby).
+
+table_to_json(Table)->
+	{[{id,Table#table.id},{status,list_to_binary(Table#table.status)}]}.
+tables_to_json(Tables)->
+	lists:map(fun(T)->table_to_json(T) end,Tables).	
 
 check_table_id(TableId)->
 	gen_server:call(lobby,{check_table_id,TableId}).
