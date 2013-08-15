@@ -36,6 +36,7 @@ handle_info(_Info,State)->
 	{noreply,State}.
 
 init(Args)->
+	lists:map(fun(Id)->fll3_table_sup:start_table(Id) end,[1,2,3]),
 	{ok,#state{name=Args,tables=[#table{id=1},#table{id=2},#table{id=3}]}}.
 
 terminate(_Reason,_State)->

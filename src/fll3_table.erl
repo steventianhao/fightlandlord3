@@ -1,26 +1,25 @@
 -module(fll3_table).
 -behavior(gen_fsm).
-
+-compile([{parse_transform, lager_transform}]).
 -export([init/1,handle_event/3,handle_sync_event/4,handle_info/3,terminate/3,code_change/4]).
 -export([start_link/1,open/3,open/2,start/2]).
 
 -define(PLAYER_ON_TABLE(Id),{p,l,{player_on_table,Id}}).
 -define(TABLE(Id),{n,l,{table,Id}}).
-
 -define(MAX_PLAYER,3).
 -define(MAX_READY_TICKS,15).
-
 
 -record(state,{id,players,ready_timer}).
 -record(timer,{ref,ticks}).
 -record(player,{pid,status=not_ready}).
 
 start_link(Id)->
-	gen_fsm:start_link({global,table},?MODULE,Id,[]).
+	gen_fsm:start_link(?MODULE,Id,[]).
 
-init(Args)->
-	%gproc:reg(n,l,{table,Args}),
-	{ok,open,#state{id=Args,players=dict:new()}}.
+init(Id)->
+	gproc:reg({n,l,{table,Id}}),
+	lager:info("starting table #~p",[Id]),
+	{ok,open,#state{id=Id,players=dict:new()}}.
 
 open(enter_table,From,S)->
 	{Pid,_}=From,Players=S#state.players,
@@ -28,7 +27,7 @@ open(enter_table,From,S)->
 	case dict:is_key(Pid,Players) of
 		true-> {already_accept,S};
 		false->
-			case dict:size(Players) of 
+			case dict:size(Players) of
 				Size when Size < ?MAX_PLAYER ->
 					Player=#player{pid=Pid},
 					%gproc:send(?PLAYER_ON_TABLE(S#state.id),{notify_enter_table,Pid}),
@@ -88,7 +87,8 @@ start(Request,StateData)->
 code_change(_OldVsn,StateName,StateData,_Extra)->
 	{ok,StateName,StateData}.
 
-terminate(_Reason,_StateName,_StateData)->
+terminate(Reason,StateName,StateData)->
+	lager:info("table terminate [reason,state,data] is [~p,~p,~p]",[Reason,StateName,StateData]),
 	ok.
 
 handle_info(check_ready,open,StateData)->

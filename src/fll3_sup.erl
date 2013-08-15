@@ -11,5 +11,6 @@ start_link() ->
 init([]) ->
 	Strategy={one_for_one, 5, 10},
 	PlayerSup={player_sup,{fll3_player_sup,start_link,[]},permanent,infinity,supervisor,[fll3_player_sup]},
+	TableSup={table_sup,{fll3_table_sup,start_link,[]},permanent,infinity,supervisor,[fll3_table_sup]},
 	Lobby={lobby,{fll3_lobby,start_link,[]},permanent,brutal_kill,worker,[fll3_lobby]},
-    {ok, {Strategy, [PlayerSup,Lobby]} }.
+    {ok, {Strategy, [PlayerSup,TableSup,Lobby]} }.
