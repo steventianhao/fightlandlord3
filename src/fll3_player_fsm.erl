@@ -3,30 +3,31 @@
 
 -compile([{parse_transform, lager_transform}]).
 -export([code_change/4,handle_event/3,handle_info/3,handle_sync_event/4,init/1,terminate/3]).
--export([anonymous/2,user/2,start_link/1]).
+-export([connect/3,anonymous/2,user/2,start_link/0]).
 
 -record(state,{conn,user,tables=[]}).
 
 -define(PLAYER_ON_TABLE(Table),{p,l,{player_on_table,Table}}).
 -define(TABLE(Table),{n,l,{table,Table}}).
 
-start_link(Conn)->
-	gen_fsm:start_link(?MODULE,Conn,[]).
+start_link()->
+	gen_fsm:start_link(?MODULE,[],[]).
 
-init(Conn)->
-	{ok,anonymous,#state{conn=Conn}}.
+init(_Args)->
+	{ok,connect,#state{}}.
 
 code_change(_OldVsn,StateName,StateData,_Extra)->
 	{ok,StateName,StateData}.
 
+
 %%handle all the event for all states,
 handle_event(conn_closed,StateName,StateData)->
 	lager:info("connection closed,what should I do# ~p@~p",[StateName,StateData]),
-	{next_state,StateName,StateData};
+	{stop,normal,StateData};
 handle_event(_Event,StateName,StateData)->
 	{next_state,StateName,StateData}.
 
-handle_sync_event(_Event,_From,StateName,StateData)->
+handle_sync_event(_Info,_From,StateName,StateData)->
 	{reply,ok,StateName,StateData}.
 
 handle_info(_Info,StateName,StateData)->
@@ -34,6 +35,9 @@ handle_info(_Info,StateName,StateData)->
 
 terminate(_Reason,_StateName,_StateData)->
 	ok.
+
+connect({connect,PidConn},_From,StateData)->
+	{reply,ok,anonymous,StateData#state{conn=PidConn}}.
 
 anonymous({login,Token},StateData)->
 	lager:info("login, token is ~p,state is ~p",[Token,StateData]),
@@ -78,9 +82,9 @@ user({enter_table,Table},StateData)->
 user(show_lobby,StateData)->
 	Reply=fll3_lobby:show_lobby(),
 	lager:info("showlobby message got, state is ~p,reply is ~p",[StateData,Reply]),
-	ConnRef=StateData#state.conn,
+	ConnPid=StateData#state.conn,
 	Json=fll3_lobby:tables_to_json(Reply),
-	gproc:send({n,l,{conn,ConnRef}},{output,Json}),
+	fll3_tcp:send(ConnPid,Json),
 	{next_state,user,StateData};
 
 user({exit_table,Table},StateData)->
