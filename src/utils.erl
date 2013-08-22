@@ -1,5 +1,5 @@
 -module(utils).
--export([groupBy/2,shuffle/1]).
+-export([groupBy/2,shuffle/1,fetch_values/1]).
 
 shuffle(List) ->
 	randomize(round(math:log(length(List)) + 0.5), List).
@@ -16,3 +16,6 @@ randomize(List) ->
 
 groupBy(F, L) -> 
 	lists:foldr(fun({K,V}, D) -> dict:append(K, V, D) end , dict:new(), [ {F(X), X} || X <- L ]).
+
+fetch_values(Dict)->
+	lists:flatmap(fun(E)->{_Key,Value}=E,Value end,dict:to_list(Dict)).
