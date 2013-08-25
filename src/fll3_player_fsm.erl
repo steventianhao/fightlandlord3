@@ -3,7 +3,7 @@
 
 -compile([{parse_transform, lager_transform}]).
 -export([code_change/4,handle_event/3,handle_info/3,handle_sync_event/4,init/1,terminate/3]).
--export([connect/3,anonymous/2,user/2,start_link/0]).
+-export([anonymous/3,user/2,start_link/0]).
 
 -record(state,{conn,user,tables=[]}).
 
@@ -14,7 +14,7 @@ start_link()->
 	gen_fsm:start_link(?MODULE,[],[]).
 
 init(_Args)->
-	{ok,connect,#state{}}.
+	{ok,anonymous,#state{}}.
 
 code_change(_OldVsn,StateName,StateData,_Extra)->
 	{ok,StateName,StateData}.
@@ -36,25 +36,22 @@ handle_info(_Info,StateName,StateData)->
 terminate(_Reason,_StateName,_StateData)->
 	ok.
 
-connect({connect,PidConn},_From,StateData)->
-	{reply,ok,anonymous,StateData#state{conn=PidConn}}.
-
-anonymous({login,Token},StateData)->
+anonymous({login,Token},{Pid,_},StateData)->
 	lager:info("login, token is ~p,state is ~p",[Token,StateData]),
 	case Token of
 		<<"simon">>->
 			lager:info("I am simon"),
-			NewStateData=StateData#state{user="simon"},
-			{next_state,user,NewStateData};
+			NewStateData=StateData#state{user="simon",conn=Pid},
+			{reply,ok,user,NewStateData};
 		<<"sammi">>->
 			lager:info("I am sammi"),
-			NewStateData=StateData#state{user="sammi"},
-			{next_state,user,NewStateData};
+			NewStateData=StateData#state{user="sammi",conn=Pid},
+			{reply,ok,user,NewStateData};
 		_ ->
 			lager:info("I am nothing"),
-			{next_state,anonymous,StateData}
+			{stop,normal,err,StateData}
 	end;
-anonymous(Info,_StateData)->
+anonymous(Info,_From,_StateData)->
 	lager:info("in anonymous state,message unhandled ~p",[Info]).
 
 validate_table(Tables,Table)->lists:any(fun(T)->T==Table end,Tables).
