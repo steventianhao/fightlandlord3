@@ -79,9 +79,8 @@ user({enter_table,Table},StateData)->
 user(show_lobby,StateData)->
 	Reply=fll3_lobby:show_lobby(),
 	lager:info("showlobby message got, state is ~p,reply is ~p",[StateData,Reply]),
-	ConnPid=StateData#state.conn,
 	Json=fll3_lobby:tables_to_json(Reply),
-	fll3_tcp:send(ConnPid,Json),
+	gen_server:cast(StateData#state.conn,{output,Json}),
 	{next_state,user,StateData};
 
 user({exit_table,Table},StateData)->

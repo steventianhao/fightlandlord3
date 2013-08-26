@@ -6,7 +6,6 @@
 -export([start_link/4]).
 -export([init/4]).
 -export([code_change/3,handle_call/3,handle_cast/2,handle_info/2,init/1,terminate/2]).
--export([send/2]).
 
 -record(state,{socket,transport,player}).
 
@@ -21,9 +20,6 @@ init(Ref,Socket,Transport,_)->
 	gen_server:enter_loop(?MODULE,[],#state{socket=Socket,transport=Transport},Timeout).
 
 init(_Args)-> ignore.
-
-send(Pid,Json)->
-	gen_server:cast(Pid,{output,Json}).
 
 code_change(_OldVsn,State,_Extra)->
 	{ok,State}.
