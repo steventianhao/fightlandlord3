@@ -4,6 +4,7 @@
 start()->
 	start(lager),
 	start(gproc),
+	start(crypto),
 	start(ranch),
 	start(cowboy),
 	start(fll3).
