@@ -3,15 +3,25 @@
 -compile([{parse_transform, lager_transform}]).
 -export([init/1,handle_event/3,handle_sync_event/4,handle_info/3,terminate/3,code_change/4]).
 -export([start_link/1,open/3,open/2,start/2]).
+-export([enter_table/1,exit_table/1]).
 
--define(PLAYER_ON_TABLE(Id),{p,l,{player_on_table,Id}}).
+-define(PLAYER_ON_TABLE(Table),{p,l,{player_on_table,Table}}).
 -define(TABLE(Id),{n,l,{table,Id}}).
+
 -define(MAX_PLAYER,3).
 -define(MAX_READY_TICKS,15).
 
 -record(state,{id,players,ready_timer}).
 -record(timer,{ref,ticks}).
 -record(player,{pid,status=not_ready}).
+
+
+enter_table(TableId)->
+	Ptable=gproc:where(?TABLE(TableId)),
+	gen_server:call(Ptable,{enter_table,self()}).
+
+exit_table(TableId)->
+	gproc:send(?TABLE(TableId),{exit_table,TableId,self()}).
 
 start_link(Id)->
 	gen_fsm:start_link(?MODULE,Id,[]).
