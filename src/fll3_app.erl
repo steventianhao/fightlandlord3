@@ -9,8 +9,8 @@ start(_StartType, _StartArgs) ->
 	Dispatch=cowboy_router:compile([
 		{'_',[
 			{"/",cowboy_static,[WebRoot,MIME,{file,<<"index.html">>}]},
-			{"/[...]",cowboy_static,[WebRoot,MIME]},
-			{"/ws",fll3_ws,[]}
+			{"/ws",fll3_ws,[]},
+			{"/[...]",cowboy_static,[WebRoot,MIME]}
 		]}
 	]),
 	{ok,_}=cowboy:start_http(http,100,[{port,7171}],[{env,[{dispatch,Dispatch}]}]),
