@@ -1,13 +1,19 @@
 -module(fll3_json_action).
 -export([handle/1]).
 
+-define(SIMPLE(Cmd),{[{<<"kind">>,<<Cmd>>}]}).
 
 process({[{<<"kind">>,<<"login">>},{<<"token">>,Token}]})->
 	{login,Token};
+
 process({[{<<"kind">>,<<"talk">>},{<<"table">>,Table},{<<"content">>,Content}]}) when is_integer(Table)->
 	{talk,Table,Content};
-process({[{<<"kind">>,<<"showlobby">>}]})->
+
+process(?SIMPLE("show_lobby"))->
 	show_lobby;
+process(?SIMPLE("fast_join"))->
+	fast_join;
+
 process({[{<<"kind">>,<<"enter_table">>},{<<"table">>,Table}]}) when is_integer(Table) ->
 	{enter_table,Table};
 process({[{<<"kind">>,<<"exit_table">>},{<<"table">>,Table}]}) when is_integer(Table)->

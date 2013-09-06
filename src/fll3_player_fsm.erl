@@ -10,6 +10,9 @@
 -define(PLAYER_ON_TABLE(Table),{p,l,{player_on_table,Table}}).
 -define(TABLE(Table),{n,l,{table,Table}}).
 
+%% error code table
+-define(NO_TABLE_AVAILABLE,-1).
+
 %%private functions
 
 write_json(Conn,Json)->
@@ -81,11 +84,22 @@ user({enter_table,Table},StateData)->
 		true ->
 			{next_state,user,StateData}
 	end;
+
 user(show_lobby,StateData)->
 	Reply=fll3_lobby:show_lobby(),
 	lager:info("showlobby message got, state is ~p,reply is ~p",[StateData,Reply]),
-	write_json(StateData#state.conn,fll3_lobby:tables_to_json(Reply)),
+	Json={[{kind,show_lobby},{result,fll3_lobby:tables_to_json(Reply)}]},
+	write_json(StateData#state.conn,Json),
 	{next_state,user,StateData};
+
+user(fast_join,StateData)->
+	case fll3_lobby:fast_join() of
+		{ok,TableId} ->
+			Json={[{kind,fast_join},{result,TableId}]};
+		not_available->
+			Json={[{kind,fast_join},{error,?NO_TABLE_AVAILABLE}]}
+	end,
+	write_json(StateData#state.conn,Json);
 
 user({exit_table,Table},StateData)->
 	Tables=StateData#state.tables,
