@@ -10,6 +10,11 @@
 -define(PLAYER_ON_TABLE(Table),{p,l,{player_on_table,Table}}).
 -define(TABLE(Table),{n,l,{table,Table}}).
 
+%%private functions
+
+write_json(Conn,Json)->
+	Conn ! {output,Json}.
+
 start_link()->
 	gen_fsm:start_link(?MODULE,[],[]).
 
@@ -79,8 +84,7 @@ user({enter_table,Table},StateData)->
 user(show_lobby,StateData)->
 	Reply=fll3_lobby:show_lobby(),
 	lager:info("showlobby message got, state is ~p,reply is ~p",[StateData,Reply]),
-	Json=fll3_lobby:tables_to_json(Reply),
-	gen_server:cast(StateData#state.conn,{output,Json}),
+	write_json(StateData#state.conn,fll3_lobby:tables_to_json(Reply)),
 	{next_state,user,StateData};
 
 user({exit_table,Table},StateData)->
@@ -105,3 +109,4 @@ user({get_ready,Table},StateData)->
 		false -> 
 			{stop,badarg,StateData}
 	end.
+

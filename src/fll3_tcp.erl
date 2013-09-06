@@ -23,17 +23,15 @@ init(_Args)-> ignore.
 
 code_change(_OldVsn,State,_Extra)->
 	{ok,State}.
-
 handle_call(_Request,_From,State)->
 	{noreply,State}.
-
-handle_cast({output,Reply},State)->
-	#state{socket=Socket,transport=Transport}=State,
-	Transport:send(Socket,[jiffy:encode(Reply),"\r\n"]),
-	{noreply,State};
 handle_cast(_Request,State)->
 	{noreply,State}.
 
+handle_info({output,Reply},State)->
+	#state{socket=Socket,transport=Transport}=State,
+	Transport:send(Socket,[jiffy:encode(Reply),"\r\n"]),
+	{noreply,State};
 handle_info(Info,State)->
 	#state{socket=Socket,transport=Transport}=State,
 	Transport:setopts(Socket,[{active,once}]),
@@ -45,30 +43,10 @@ notify_conn_closed(Player)->
 		Pid-> gen_fsm:send_all_state_event(Pid,conn_closed)
 	end.
 
-handle({tcp,Socket,Packet},State)->
-	lager:info("get data from connection@~p, data@~p",[Socket,Packet]),
-	Action=fll3_json_action:handle(Packet),
-	lager:info("Action got:~p",[Action]),
-	case Action of
-		badjson-> 
-			notify_conn_closed(State#state.player),
-			lager:info("get message is invalid jsoin ~p",[Packet]),
-			{stop,badjson,State};
-		Login={login,_Token} ->
-			{ok,Pid}=fll3_player_sup:start_player(),
-			case gen_fsm:sync_send_event(Pid,Login) of
-				ok-> 
-					NewState=State#state{player=Pid},
-					{noreply,NewState};
-				err->
-					{stop,noauth,State}
-			end;
-		_ when State#state.player==undefined->
-			{stop,noauth,State};
-		_ ->
-			gen_fsm:send_event(State#state.player,Action),
-			{noreply,State}
-	end;
+handle({tcp,_Socket,Packet},State)->
+	lager:info("get data from connection#~p",[Packet]),
+	handleMsg(Packet,State);
+
 handle({tcp_closed,Socket},State)->
 	notify_conn_closed(State#state.player),
 	lager:info("connection closed @~p",[Socket]),
@@ -90,3 +68,27 @@ handle(Info,State)->
 
 terminate(_Reason,_State)->
 	ok.
+
+handleMsg(Packet,State)->
+	Action=fll3_json_action:handle(Packet),
+	lager:info("Action got:~p",[Action]),
+	case Action of
+		badjson-> 
+			notify_conn_closed(State#state.player),
+			lager:info("get message is invalid jsoin ~p",[Packet]),
+			{stop,badjson,State};
+		Login={login,_Token} ->
+			{ok,Pid}=fll3_player_sup:start_player(),
+			case gen_fsm:sync_send_event(Pid,Login) of
+				ok-> 
+					NewState=State#state{player=Pid},
+					{noreply,NewState};
+				err->
+					{stop,noauth,State}
+			end;
+		_ when State#state.player==undefined->
+			{stop,noauth,State};
+		_ ->
+			gen_fsm:send_event(State#state.player,Action),
+			{noreply,State}
+	end.

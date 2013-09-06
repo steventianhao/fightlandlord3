@@ -45,7 +45,7 @@
 
       function sendTxt() {
           if(websocket.readyState == websocket.OPEN){
-              txt = $("#send_txt").val();
+              txt = $("#send_txt").val()+"\r\n";
               websocket.send(txt);
               showScreen('sending: ' + txt); 
           } else {
