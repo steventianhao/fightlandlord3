@@ -61,10 +61,11 @@ websocket_handle(Data, Req, State) ->
 
 
 websocket_info({output,Reply}, Req, State) ->
-	lager:info("websocket info ~p~p~p",[Reply,Req,State]),
+	lager:info("websocket info ~p~p",[Reply,State]),
 	Msg=[jiffy:encode(Reply),"\r\n"],
 	{reply, {text,Msg},Req, State}.
 	
-websocket_terminate(Reason, Req, State) ->
-	lager:info("websocket terminate ~p~p~p",[Reason,Req,State]),
+websocket_terminate(Reason, _Req, State) ->
+	lager:info("websocket terminate ~p~p",[Reason,State]),
+	notify_conn_closed(State#state.player),
 	ok.
