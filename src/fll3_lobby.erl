@@ -35,7 +35,7 @@ tables_to_json(Tables)->
 fast_choose_table(TableDict)->
 	Dict=dict:filter(
 		fun(_Key,Value)-> 
-			#table{users=Users,status=Status}=Value,
+			[#table{users=Users,status=Status}]=Value,
 			length(Users)<?MAX_PLAYERS andalso Status == "open" 
 		end,
 		TableDict),
@@ -48,7 +48,8 @@ handle_call(show_lobby,_From,State)->
 	Reply=utils:fetch_values(State#state.tables),
 	{reply,Reply,State};
 handle_call(fast_join,_From,State)->
-	{reply,fast_choose_table(State#state.tables)};
+	Reply=fast_choose_table(State#state.tables),
+	{reply,Reply,State};
 handle_call({check_table_id,TableId},_From,State)->
 	Reply=dict:is_key(TableId,State#state.tables),
 	{reply,Reply,State}.
